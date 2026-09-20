@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>GBG Tetris 2.0</title>
+<title>GBG Tetris 2.1</title>
 <style>
 :root{--bg:#090b14;--panel:#12172a;--line:#2a3150;--text:#eef2ff;--muted:#8d96b5}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(circle at 50% 0,#172044,#090b14 55%);color:var(--text)}
@@ -27,7 +27,7 @@ body{display:flex;justify-content:center;padding:18px}.app{width:min(1050px,100%
 </head>
 <body>
 <div class="app">
-<header class="title"><h1>GBG TETRIS 2.0</h1><p>7-Bag · Hold · Next 5 · Ghost · Combo · T-Spin · Local Records</p></header>
+<header class="title"><h1>GBG TETRIS 2.1</h1><p>7-Bag · Hold · Next 5 · Ghost · Combo · T-Spin · Local Records</p></header>
 <main class="layout">
 <section class="left">
 <div class="panel"><h2>Score</h2><div class="big" id="score">0</div>
@@ -39,7 +39,7 @@ body{display:flex;justify-content:center;padding:18px}.app{width:min(1050px,100%
 </section>
 <section class="panel boardWrap">
 <canvas id="board" width="300" height="600"></canvas>
-<div id="overlay" class="overlay"><h2 id="ovTitle">GBG TETRIS 2.0</h2><p id="ovMsg">게임 시작 버튼을 누르세요.</p><button class="btn primary" id="ovBtn">START</button></div><div id="flash" class="flash"></div>
+<div id="overlay" class="overlay"><h2 id="ovTitle">GBG TETRIS 2.1</h2><p id="ovMsg">게임 시작 버튼을 누르세요.</p><button class="btn primary" id="ovBtn">START</button></div><div id="flash" class="flash"></div>
 </section>
 <section class="right">
 <div class="panel"><h2>Hold <span class="badge">C</span></h2><canvas id="hold" class="mini" width="150" height="58"></canvas></div>
@@ -68,23 +68,23 @@ function collide(p,dx=0,dy=0,shape=p.shape){for(let r=0;r<shape.length;r++)for(l
 function rotateMatrix(m,dir=1){let n=m.length,o=Array.from({length:n},()=>Array(n).fill(0));for(let r=0;r<n;r++)for(let c=0;c<n;c++)dir>0?o[c][n-1-r]=m[r][c]:o[n-1-c][r]=m[r][c];return o}
 function rotate(dir=1){if(state!=="playing"||current.type==="O")return false;const s=rotateMatrix(current.shape,dir),k=[[0,0],[-1,0],[1,0],[-2,0],[2,0],[0,-1],[0,1]];for(const[x,y]of k)if(!collide(current,x,y,s)){current.shape=s;current.x+=x;current.y+=y;current.rot=(current.rot+(dir>0?1:3))%4;lastRotate=true;beep(480,.035);drawAll();return true}return false}
 function spawn(){ensureQueue();current=piece(queue.shift());ensureQueue();canHold=true;lastRotate=false;if(collide(current))gameOver();drawAll()}
-function move(dx){if(state!=="playing")return;if(!collide(current,dx,0)){current.x+=dx;lastRotate=false;beep(180,.02);drawAll()}}
+function move(dx){if(state!=="playing")return;if(!collide(current,dx,0)){current.x+=dx;lastRotate=false;drawAll()}}
 function ghostY(){let y=current.y;while(!collide(current,0,y-current.y+1))y++;return y}
-function soft(){if(state!=="playing")return false;if(!collide(current,0,1)){current.y++;score++;update();return true}lock();return false}
-function hard(){if(state!=="playing")return;let y=ghostY(),d=y-current.y;current.y=y;score+=d*2;beep(110,.06);lock()}
+function soft(){if(state!=="playing")return false;if(!collide(current,0,1)){current.y++;score++;dropSound();update();return true}lock();return false}
+function hard(){if(state!=="playing")return;let y=ghostY(),d=y-current.y;current.y=y;score+=d*2;hardDropSound();lock()}
 function hold(){if(state!=="playing"||!canHold)return;canHold=false;let t=current.type;if(holdType===null){holdType=t;spawn()}else{let s=holdType;holdType=t;current=piece(s);lastRotate=false;if(collide(current))gameOver()}drawAll()}
 function isTSpin(){if(!current||current.type!=="T"||!lastRotate)return false;const cx=current.x+1,cy=current.y+1;let n=0;for(const[dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){let x=cx+dx,y=cy+dy;if(x<0||x>=COLS||y<0||y>=ROWS||board[y][x])n++}return n>=3}
-function lock(){let tsp=isTSpin();for(let r=0;r<current.shape.length;r++)for(let c=0;c<current.shape[r].length;c++)if(current.shape[r][c]){let y=current.y+r,x=current.x+c;if(y<0){gameOver();return}board[y][x]=current.type}
+function lock(){let tsp=isTSpin();lockSound();for(let r=0;r<current.shape.length;r++)for(let c=0;c<current.shape[r].length;c++)if(current.shape[r][c]){let y=current.y+r,x=current.x+c;if(y<0){gameOver();return}board[y][x]=current.type}
 let cleared=0;for(let r=ROWS-1;r>=0;r--)if(board[r].every(Boolean)){board.splice(r,1);board.unshift(Array(COLS).fill(null));cleared++;r++}
 if(tsp){tspins++;$("tspins").textContent=tspins}
-if(cleared){lines+=cleared;combo++;bestCombo=Math.max(bestCombo,combo);let difficult=cleared===4||tsp,base=tsp?(cleared===0?400:cleared===1?800:cleared===2?1200:1600):[0,100,300,500,800][cleared],b2bBonus=difficult&&b2b>0?1.5:1;if(difficult)b2b++;else if(cleared<4)b2b=0;score+=Math.floor(base*level*b2bBonus)+(combo>0?50*combo*level:0);if(cleared===4)tetrises++;showFlash(tsp?"T-SPIN!":cleared===4?"TETRIS!":combo>0?`COMBO ×${combo}`:`${cleared} LINE`);beep(difficult?760:560,.09)}else combo=-1;
+if(cleared){lines+=cleared;combo++;bestCombo=Math.max(bestCombo,combo);let difficult=cleared===4||tsp,base=tsp?(cleared===0?400:cleared===1?800:cleared===2?1200:1600):[0,100,300,500,800][cleared],b2bBonus=difficult&&b2b>0?1.5:1;if(difficult)b2b++;else if(cleared<4)b2b=0;score+=Math.floor(base*level*b2bBonus)+(combo>0?50*combo*level:0);if(cleared===4)tetrises++;showFlash(tsp?"T-SPIN!":cleared===4?"TETRIS!":combo>0?`COMBO ×${combo}`:`${cleared} LINE`);if(tsp)tSpinSound();else lineSound(cleared);if(combo>0)setTimeout(()=>comboSound(combo),70)}else combo=-1;
 level=mode==="zen"?1:Math.min(20,Math.floor(lines/10)+1);if(mode==="sprint"&&lines>=40){lines=40;gameWin();return}update();spawn()}
 function gravity(){if(mode==="zen")return 1000;return Math.max(55,1000*Math.pow(.8-.007*(level-1),level-1))}
 function update(){$("score").textContent=score;$("level").textContent=level;$("lines").textContent=lines;$("combo").textContent=combo>=0?combo:"-";$("b2b").textContent=b2b||"-";records.best=Math.max(records.best,score);records.lines=Math.max(records.lines,lines);records.combo=Math.max(records.combo,bestCombo);records.tetrises=Math.max(records.tetrises,tetrises);records.tspins=Math.max(records.tspins,tspins);localStorage.setItem("gbgTetris20",JSON.stringify(records));$("best").textContent=records.best;$("bestLines").textContent=records.lines;$("bestCombo").textContent=records.combo;$("tetrises").textContent=records.tetrises;$("tspins").textContent=records.tspins}
-function startGame(){mode=$("mode").value;board=empty();bag=[];queue=[];holdType=null;canHold=true;score=0;lines=0;level=1;combo=-1;b2b=0;bestCombo=0;tetrises=0;tspins=0;ensureQueue();state="playing";spawn();last=performance.now();dropTimer=0;$("overlay").classList.add("hidden");$("pause").textContent="일시정지 (P)";beep(660,.08);cancelAnimationFrame(raf);loop(last)}
+function startGame(){mode=$("mode").value;board=empty();bag=[];queue=[];holdType=null;canHold=true;score=0;lines=0;level=1;combo=-1;b2b=0;bestCombo=0;tetrises=0;tspins=0;ensureQueue();state="playing";spawn();last=performance.now();dropTimer=0;$("overlay").classList.add("hidden");$("pause").textContent="일시정지 (P)";startSound();cancelAnimationFrame(raf);loop(last)}
 function pause(){if(state==="playing"){state="paused";$("pause").textContent="계속하기 (P)";showOverlay("일시정지","P 또는 버튼을 눌러 계속합니다.",false)}else if(state==="paused"){state="playing";$("pause").textContent="일시정지 (P)";$("overlay").classList.add("hidden");last=performance.now();loop(last)}}
-function gameOver(){state="gameover";showOverlay("GAME OVER",`점수 <b>${score}</b><br>라인 ${lines}<br><br>다시 시작하세요.`,true);beep(90,.22);update()}
-function gameWin(){state="gameover";showOverlay("SPRINT CLEAR!",`40라인 완료<br>점수 <b>${score}</b>`,true);beep(880,.18);update()}
+function gameOver(){state="gameover";showOverlay("GAME OVER",`점수 <b>${score}</b><br>라인 ${lines}<br><br>다시 시작하세요.`,true);gameOverSound();update()}
+function gameWin(){state="gameover";showOverlay("SPRINT CLEAR!",`40라인 완료<br>점수 <b>${score}</b>`,true);winSound();update()}
 function showOverlay(t,m,start){$("ovTitle").textContent=t;$("ovMsg").innerHTML=m;$("ovBtn").style.display=start?"block":"none";$("overlay").classList.remove("hidden")}
 function loop(t){if(state!=="playing")return;let dt=t-last;last=t;dropTimer+=dt;if(dropTimer>=gravity()){soft();dropTimer=0}drawAll();raf=requestAnimationFrame(loop)}
 function block(c,x,y,col,size=SIZE,alpha=1){c.globalAlpha=alpha;c.fillStyle=col;c.fillRect(x*size+1,y*size+1,size-2,size-2);c.fillStyle="#ffffff44";c.fillRect(x*size+2,y*size+2,size-4,3);c.globalAlpha=1}
@@ -93,13 +93,28 @@ function previewShape(c,type,size=16){c.fillStyle="#080b15";c.fillRect(0,0,c.can
 function drawNext(){nextCtx.fillStyle="#080b15";nextCtx.fillRect(0,0,150,76);ensureQueue();for(let i=0;i<Math.min(5,queue.length);i++){let s=SHAPES[queue[i]],size=11,ox=(150/size-s[0].length)/2;for(let r=0;r<s.length;r++)for(let c=0;c<s[r].length;c++)if(s[r][c])block(nextCtx,ox+c,2+i*15+r,COLORS[queue[i]],size)}}
 function drawAll(){drawBoard();previewShape(holdCtx,holdType,16);drawNext()}
 function showFlash(t){let e=$("flash");e.textContent=t;e.classList.remove("show");void e.offsetWidth;e.classList.add("show")}
-let audioCtx=null;function beep(freq,dur){if(!soundOn)return;try{audioCtx??=new(window.AudioContext||window.webkitAudioContext)();let o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=freq;o.type="square";g.gain.setValueAtTime(.035,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+dur);o.connect(g).connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+dur)}catch{}}
+let audioCtx=null,noiseBuffer=null,lastStepSound=0;
+function getAudio(){if(!soundOn)return null;try{audioCtx??=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==="suspended")audioCtx.resume();return audioCtx}catch{return null}}
+function makeNoiseBuffer(){if(noiseBuffer||!audioCtx)return noiseBuffer;const n=Math.floor(audioCtx.sampleRate*.16),b=audioCtx.createBuffer(1,n,audioCtx.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,2);noiseBuffer=b;return b}
+function tone(freq,dur,type="triangle",gain=.045,endFreq=freq*.72){const a=getAudio();if(!a)return;const t=a.currentTime,o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);o.frequency.exponentialRampToValueAtTime(Math.max(35,endFreq),t+dur);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(gain,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g).connect(a.destination);o.start(t);o.stop(t+dur+.01)}
+function thump(){const a=getAudio();if(!a)return;const t=a.currentTime,o=a.createOscillator(),g=a.createGain();o.type="sine";o.frequency.setValueAtTime(115,t);o.frequency.exponentialRampToValueAtTime(48,t+.12);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.12,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+.14);o.connect(g).connect(a.destination);o.start(t);o.stop(t+.15)}
+function clickSound(pitch=1){const a=getAudio();if(!a)return;const b=makeNoiseBuffer(),t=a.currentTime,src=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();src.buffer=b;f.type="bandpass";f.frequency.value=1150*pitch;f.Q.value=2.2;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.035,t+.004);g.gain.exponentialRampToValueAtTime(.0001,t+.065);src.connect(f).connect(g).connect(a.destination);src.start(t);src.stop(t+.07)}
+function dropSound(){const now=performance.now();if(now-lastStepSound<45)return;lastStepSound=now;clickSound(.92+Math.random()*.16)}
+function lockSound(){clickSound(.72);thump()}
+function hardDropSound(){thump();setTimeout(()=>clickSound(.72),28)}
+function lineSound(n){const a=[420,520,620,760][Math.min(4,n)-1]||420;tone(a,.12,"sawtooth",.035,a*1.35);if(n>=4)setTimeout(()=>tone(a*1.6,.16,"triangle",.05,a*2.1),55)}
+function tSpinSound(){tone(430,.09,"triangle",.04,720);setTimeout(()=>tone(720,.13,"triangle",.045,980),45)}
+function comboSound(n){tone(260+Math.min(n,8)*42,.075,"square",.025,330+Math.min(n,8)*52)}
+function startSound(){tone(520,.08,"triangle",.035,760)}
+function gameOverSound(){tone(150,.2,"sawtooth",.05,55);setTimeout(()=>tone(95,.28,"sawtooth",.045,38),95)}
+function winSound(){[660,830,1040].forEach((f,i)=>setTimeout(()=>tone(f,.13,"triangle",.045,f*1.2),i*90))}
+function beep(freq,dur){tone(freq,dur,"triangle",.03,freq*.82)}
 function act(a){if(a==="left")move(-1);if(a==="right")move(1);if(a==="rotate")rotate(1);if(a==="rotateL")rotate(-1);if(a==="down")soft();if(a==="drop")hard();if(a==="hold")hold();if(a==="pause")pause()}
 document.addEventListener("keydown",e=>{if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Space"].includes(e.code))e.preventDefault();if(e.repeat&&["ArrowUp","KeyZ","KeyX","KeyC","Space","KeyP","Escape"].includes(e.code))return;if(state==="idle"||state==="gameover"){if(e.code==="Space"||e.code==="Enter")startGame();return}if(e.code==="KeyP"||e.code==="Escape"){pause();return}if(state!=="playing")return;if(e.code==="ArrowLeft")move(-1);else if(e.code==="ArrowRight")move(1);else if(e.code==="ArrowUp"||e.code==="KeyX")rotate(1);else if(e.code==="KeyZ")rotate(-1);else if(e.code==="ArrowDown")soft();else if(e.code==="Space")hard();else if(e.code==="KeyC")hold()});
 $("start").onclick=startGame;$("restart").onclick=startGame;$("pause").onclick=pause;$("ovBtn").onclick=startGame;
-$("sound").onclick=()=>{soundOn=!soundOn;$("sound").textContent=soundOn?"🔊 사운드 ON":"🔇 사운드 OFF";if(soundOn)beep(600,.05)};
+$("sound").onclick=()=>{soundOn=!soundOn;$("sound").textContent=soundOn?"🔊 사운드 ON":"🔇 사운드 OFF";if(soundOn)startSound()};
 document.querySelectorAll("[data-act]").forEach(b=>b.addEventListener("click",()=>act(b.dataset.act)));
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&state==="playing")pause()});
-drawAll();showOverlay("GBG TETRIS 2.0","게임 시작 버튼을 누르거나<br><b>SPACE</b>를 누르세요.",true);
+drawAll();showOverlay("GBG TETRIS 2.1","게임 시작 버튼을 누르거나<br><b>SPACE</b>를 누르세요.",true);
 </script>
 </body></html>
