@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>GBG Tetris 2.1</title>
+<title>GBG Tetris 2.2</title>
 <style>
 :root{--bg:#090b14;--panel:#12172a;--line:#2a3150;--text:#eef2ff;--muted:#8d96b5}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(circle at 50% 0,#172044,#090b14 55%);color:var(--text)}
@@ -27,7 +27,7 @@ body{display:flex;justify-content:center;padding:18px}.app{width:min(1050px,100%
 </head>
 <body>
 <div class="app">
-<header class="title"><h1>GBG TETRIS 2.1</h1><p>7-Bag · Hold · Next 5 · Ghost · Combo · T-Spin · Local Records</p></header>
+<header class="title"><h1>GBG TETRIS 2.2</h1><p>7-Bag · Hold · Next 5 · Ghost · Combo · T-Spin · Local Records</p></header>
 <main class="layout">
 <section class="left">
 <div class="panel"><h2>Score</h2><div class="big" id="score">0</div>
@@ -39,7 +39,7 @@ body{display:flex;justify-content:center;padding:18px}.app{width:min(1050px,100%
 </section>
 <section class="panel boardWrap">
 <canvas id="board" width="300" height="600"></canvas>
-<div id="overlay" class="overlay"><h2 id="ovTitle">GBG TETRIS 2.1</h2><p id="ovMsg">게임 시작 버튼을 누르세요.</p><button class="btn primary" id="ovBtn">START</button></div><div id="flash" class="flash"></div>
+<div id="overlay" class="overlay"><h2 id="ovTitle">GBG TETRIS 2.2</h2><p id="ovMsg">게임 시작 버튼을 누르세요.</p><button class="btn primary" id="ovBtn">START</button></div><div id="flash" class="flash"></div>
 </section>
 <section class="right">
 <div class="panel"><h2>Hold <span class="badge">C</span></h2><canvas id="hold" class="mini" width="150" height="58"></canvas></div>
@@ -94,7 +94,8 @@ function drawNext(){nextCtx.fillStyle="#080b15";nextCtx.fillRect(0,0,150,76);ens
 function drawAll(){drawBoard();previewShape(holdCtx,holdType,16);drawNext()}
 function showFlash(t){let e=$("flash");e.textContent=t;e.classList.remove("show");void e.offsetWidth;e.classList.add("show")}
 let audioCtx=null,noiseBuffer=null,lastStepSound=0;
-function getAudio(){if(!soundOn)return null;try{audioCtx??=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==="suspended")audioCtx.resume();return audioCtx}catch{return null}}
+function getAudio(){if(!soundOn)return null;try{if(!audioCtx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;audioCtx=new AC()}if(audioCtx.state==="suspended"){const p=audioCtx.resume();if(p&&p.catch)p.catch(()=>{})}return audioCtx}catch(e){return null}}
+function unlockAudio(){if(!soundOn)return;try{const a=getAudio();if(!a)return;const t=a.currentTime,o=a.createOscillator(),g=a.createGain();g.gain.value=0;o.connect(g).connect(a.destination);o.start(t);o.stop(t+.005)}catch(e){}}
 function makeNoiseBuffer(){if(noiseBuffer||!audioCtx)return noiseBuffer;const n=Math.floor(audioCtx.sampleRate*.16),b=audioCtx.createBuffer(1,n,audioCtx.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,2);noiseBuffer=b;return b}
 function tone(freq,dur,type="triangle",gain=.045,endFreq=freq*.72){const a=getAudio();if(!a)return;const t=a.currentTime,o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);o.frequency.exponentialRampToValueAtTime(Math.max(35,endFreq),t+dur);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(gain,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g).connect(a.destination);o.start(t);o.stop(t+dur+.01)}
 function thump(){const a=getAudio();if(!a)return;const t=a.currentTime,o=a.createOscillator(),g=a.createGain();o.type="sine";o.frequency.setValueAtTime(115,t);o.frequency.exponentialRampToValueAtTime(48,t+.12);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.12,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+.14);o.connect(g).connect(a.destination);o.start(t);o.stop(t+.15)}
@@ -111,10 +112,15 @@ function winSound(){[660,830,1040].forEach((f,i)=>setTimeout(()=>tone(f,.13,"tri
 function beep(freq,dur){tone(freq,dur,"triangle",.03,freq*.82)}
 function act(a){if(a==="left")move(-1);if(a==="right")move(1);if(a==="rotate")rotate(1);if(a==="rotateL")rotate(-1);if(a==="down")soft();if(a==="drop")hard();if(a==="hold")hold();if(a==="pause")pause()}
 document.addEventListener("keydown",e=>{if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Space"].includes(e.code))e.preventDefault();if(e.repeat&&["ArrowUp","KeyZ","KeyX","KeyC","Space","KeyP","Escape"].includes(e.code))return;if(state==="idle"||state==="gameover"){if(e.code==="Space"||e.code==="Enter")startGame();return}if(e.code==="KeyP"||e.code==="Escape"){pause();return}if(state!=="playing")return;if(e.code==="ArrowLeft")move(-1);else if(e.code==="ArrowRight")move(1);else if(e.code==="ArrowUp"||e.code==="KeyX")rotate(1);else if(e.code==="KeyZ")rotate(-1);else if(e.code==="ArrowDown")soft();else if(e.code==="Space")hard();else if(e.code==="KeyC")hold()});
-$("start").onclick=startGame;$("restart").onclick=startGame;$("pause").onclick=pause;$("ovBtn").onclick=startGame;
-$("sound").onclick=()=>{soundOn=!soundOn;$("sound").textContent=soundOn?"🔊 사운드 ON":"🔇 사운드 OFF";if(soundOn)startSound()};
+$("start").onclick=()=>{unlockAudio();startGame()};
+$("restart").onclick=()=>{unlockAudio();startGame()};
+$("pause").onclick=pause;
+$("ovBtn").onclick=()=>{unlockAudio();startGame()};
+document.addEventListener("pointerdown",unlockAudio,{once:true});
+document.addEventListener("keydown",unlockAudio,{once:true});
+$("sound").onclick=()=>{soundOn=!soundOn;$("sound").textContent=soundOn?"🔊 사운드 ON":"🔇 사운드 OFF";if(soundOn){unlockAudio();startSound()}};
 document.querySelectorAll("[data-act]").forEach(b=>b.addEventListener("click",()=>act(b.dataset.act)));
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&state==="playing")pause()});
-drawAll();showOverlay("GBG TETRIS 2.1","게임 시작 버튼을 누르거나<br><b>SPACE</b>를 누르세요.",true);
+drawAll();showOverlay("GBG TETRIS 2.2","게임 시작 버튼을 누르거나<br><b>SPACE</b>를 누르세요.",true);
 </script>
 </body></html>
